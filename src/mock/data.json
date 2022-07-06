@@ -1,0 +1,7 @@
+{
+    "register": [{
+        "id": 1,
+        "name": "admin@163.com",
+        "pwd": "admin123"
+    }]
+}
