@@ -36,8 +36,9 @@
                 type="password" />
     </el-form-item>
     <el-form-item>
-      <el-button type="primary" class="login-btn block" @click="submitForm(ruleFormRef)"
-        >{{model === "login" ? '登录' : '注册'}}</el-button>
+      <el-button 
+      :disabled="btnbool" type="primary" class="login-btn block" @click="submitForm(ruleFormRef)"
+        >{{model === "login" ? "登录" : "注册"}}</el-button>
     </el-form-item>
   </el-form>
      </div>
@@ -46,7 +47,7 @@
 
 <script lang="ts" setup>
   //创建复杂数据类型
-  import { reactive, ref, onMounted } from 'vue';
+  import { reactive, ref, onMounted, watch } from 'vue';
   import type { FormInstance } from 'element-plus';
 
   
@@ -57,8 +58,14 @@
   // const link = require('../../api/Link.js')
   // const apiUrl = require('../../api/url.js')
   import apiUrl from '../../api/url.js';
+
+  import useMd5 from "../../hook/index.js"
   
-  // import { ElMessage } from 'element-plus'
+  import { ElMessage } from 'element-plus'
+import { log } from 'console';
+
+import { useRouter } from 'vue-router';
+let router = useRouter()
 
 // import {useRouter} from "vue-router"
 // let router=useRouter()
@@ -69,6 +76,8 @@
   ])
   
   let model = ref("login")
+
+  
 
   onMounted(()=>{
     console.log(process.env.VUE_APP_API);
@@ -134,6 +143,26 @@ const ruleForm = reactive({
   age: '',
 })
 
+let btnbool = ref(true)
+watch(ruleForm,(newval,oldval)=>{
+  
+  if(model.value==="login"){
+    if(newval.username!=""&&newval.password!=""){
+      btnbool.value=false
+    }else{
+        btnbool.value=true
+    }
+
+  }else{
+     if(newval.username!=""&&newval.password!=""&&newval.passwords!=""){
+      btnbool.value=false
+    }else{
+        btnbool.value=true
+    }
+  }
+
+})
+
 // 这里就是设置 以哪种方式触发表单验证 失去焦点验证
 const rules = reactive({
   password: [{ validator: validatePass, trigger: 'blur' }],
@@ -148,20 +177,41 @@ const submitForm = (formEl: FormInstance | undefined) => {
       // 判断是登录还是注册
       if (model.value == "login") {
         console.log("登录");
+
+        link(apiUrl.register, "get",{}, {uname: ruleForm.username,
+          pwd: useMd5(ruleForm.password).value} ).then((ok:any) =>{
+          // console.log(ok)
+
+          if(ok.data.length != 0) {
+            console.log("登录成功")
+
+            router.push("/home")
+          }else{
+            console.log("登录失败")
+          }
+        }) 
+        
       } else {
         // 把要发送的数据拼装成一个对象
         let data = {
           uname: ruleForm.username,
-          pwd: ruleForm.password,
+          pwd: useMd5(ruleForm.password).value
         };
 
         link(apiUrl.register, "POST", data).then((ok:any) => {
           console.log(ok);
           if (Object.keys(ok.data).length !== 0 ){
-            console.log("注册成功");
+             ElMessage("注册成功");
+
+            //  把输入框的内容切换到登录
+            model.value="login"
+
+            MenuData.forEach(v => {
+              v.current = false
+            })
+            MenuData[0].current = true
              }else{
-              console.log("注册失败");
-              
+             ElMessage.error("注册失败");
              }
         });
       }
